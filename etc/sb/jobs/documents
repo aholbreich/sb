@@ -1,0 +1,3 @@
+JOB_SOURCE=/home/storage/documents/ # Absolut path with trailing slash
+JOB_EXCLUDEFILE=
+JOB_HISTORYLEVEL=14

@@ -1,0 +1,20 @@
+ERR_WRONGARGS=65
+
+ERR_MNT_UNKNOWN=110
+ERR_MNT_BUSY=111
+
+
+. /etc/sb/sb.conf #read configuration parameter
+
+if [ ! -f $sb_path_log ]
+then
+  itouch $sb_path_log
+fi
+
+#
+#Performs simple loging
+#
+log()
+{
+    echo "`date +%d.%m.%Y/%H:%M:%S` $1 " >> $sb_path_log
+}

@@ -1,0 +1,6 @@
+JOB_SOURCE=/ # Absolut path with trailing slash
+JOB_DEST=system
+JOB_EXCLUDEFILE=system.ex
+JOB_HISTORYLEVEL=7
+
+# System backup.. /etc /root /boot user part of /home

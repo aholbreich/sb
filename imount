@@ -1,0 +1,57 @@
+#!/bin/sh
+#Shuron's Backup intelligent Mounter Script
+#v 0.0.2
+#
+#set -xv
+INC_COMMON=common   		#Common-definitions file
+
+# first Argument is mount device, the sekond is location    
+ARGNO=2 			#Argument number the script expects
+if [ -f "$INC_COMMON" ]
+then
+    . $INC_COMMON
+    if [ "$ARGNO" -eq "$#" ]
+    then
+        test=`df | grep $2 | awk '{print $1}'`
+	#echo "Test: $test"
+	if [ -z "$test" ]
+	then 
+	log "Start traying to mount $1 on $2 ..."
+	    mount $1 $2
+	    if [ $? -eq 0 ]
+	    then
+		log "SUCESSFUL mount: $1 --> $2 "
+		exit 0
+	    else
+	        log "FAILED on mount Error:Returnen $? : $ERR_MNT_UNKNOWN "
+		exit $ERR_MNT_UNKNOWN 			#See common
+	    fi
+	else
+	    if [ "$test" == "$1" ]
+	    then
+		log "MOUNT SKIPED: $1 is allready mounted on $2 "
+		right=`cat /proc/mounts | grep $1 | awk '{print $1}'`
+		if [ "right" != "(rw)" ]
+		then
+		    log " But mounted as READONLY, trying to remount with write access "
+		    log "So will try to unmount"
+		    umount $1 
+		    log "umount returend: $?"
+		    log "TRy to mount rw"
+		    mount $1 $2
+		    log "mount returned $?"
+		fi
+		exit 0
+	    else
+		log "MOUNT FAILURE: $1  seemed to be allready mounted to other directory. Error: $MNT_FAILS_BUSY "  
+		exit $ERR_MNT_BUSY
+	    fi
+	fi
+    else
+	echo " Wrong Arguments ";	
+	exit $ERR_WRONGARGS
+    fi 
+else
+    echo "Error. The file $INC_COMMON not found."
+    exit 1
+fi

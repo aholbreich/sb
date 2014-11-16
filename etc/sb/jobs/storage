@@ -1,0 +1,7 @@
+JOB_SOURCE=/home/storage/ # Absolut path with trailing slash
+JOB_EXCLUDEFILE=storage.ex
+JOB_HISTORYLEVEL=5
+
+# Storage BUT not documents
+#=== you can overwrite some general configs from sb.conf ===
+need_unmount=true

@@ -1,0 +1,28 @@
+#!/bin/sh
+# Deletes all files in specified path tahs hav been modified (ovverriden to)
+# since given param 2.
+
+if [ -z "$1" ]
+then
+    echo "Path were not specified"
+    exit 65
+fi
+
+if [ -z "$2" ]
+then
+    echo " Time in Minutes where not specified"
+    exit 65
+    
+fi
+
+lng=${#1}
+find $1 -cmin -$2 | while read file
+do 
+    if [ -f "$file" ] 
+    then
+	cute=`echo "$file" | cut -c"$lng"-"${#file}"`
+	echo "FILE: $cute" 
+    else
+	echo "DIR: $file";
+    fi
+done 

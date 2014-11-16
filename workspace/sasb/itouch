@@ -1,0 +1,58 @@
+#!/bin/sh
+# Shuron's Backup Inteliggent touch
+# This touch script executes touch in the given path
+# if path does not exist it will be created
+# v 0.0.2
+#
+# THIS SOFTWARE IS PROVIDET WITH  NO WARRANTY. USAGE ON OWN RISK.
+# @autor Alexander Holbreich
+
+ARGNUM=1
+if [ $# -ne "$ARGNUM" ]
+then 
+    echo " bad arguments, awaiting path"
+    exit 65
+else
+    first=`echo "$1" | cut -c1`
+    #echo "$first"
+    if [ "$first" != "/" ]
+    then
+	echo "bad argument: Only absolute path is supportet in current version"
+	exit 65
+    fi   
+    i=2
+    tpath="/"
+    #=== Getting filename at the end of path ===
+    tmp=`echo "$1" | cut -d\/ -f$i`
+    while [ ! -z "$tmp" ]
+    do
+        tpath=$tpath$tmp 
+	tpath=$tpath"/"
+	i=$((i+1))
+	file=$tmp
+	tmp=`echo "$1" | cut -d\/ -f$i`
+    done
+    #echo "File is $file "
+    
+    #=== Creating directory path ====
+    end=$((i-1))
+    i=2
+    tpath="/"
+    tmp=`echo "$1" | cut -d\/ -f$i`
+    while [ "$i" -lt "$end" ]
+    do
+        tpath=$tpath$tmp
+	#echo "path test $tpath"
+	if [ ! -d "$tpath" ]
+	then
+	    mkdir $tpath
+	fi 
+	tpath=$tpath"/"
+	i=$((i+1))
+	tmp=`echo "$1" | cut -d\/ -f$i`
+    done
+    
+    #=== now file can be touched===
+    touch $1
+fi 
+ 

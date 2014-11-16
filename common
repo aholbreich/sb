@@ -1,0 +1,84 @@
+ERR_WRONGARGS=65
+
+ERR_MNT_UNKNOWN=110
+ERR_MNT_BUSY=111
+
+# Don't change the default log level here. change ist in your configurationfile
+# Allowed 0 ( DEBUG ), 1 (INFO), 2( WARN ), 3(ERROR), 4( FATAL )
+DEFAULT_LOGLEVEL=1
+
+level[0]=DEBUG
+level[1]=INFO
+level[2]=WARN
+level[3]=ERROR
+level[4]=FATAL
+
+. /etc/sb/sb.conf #read configuration parameter
+
+if [ ! -f $sb_path_log ]
+then
+  itouch $sb_path_log
+fi
+
+if [ -z "$loglevel"] 
+then
+    loglevel=DEFAULT_LOGLEVEL
+fi
+
+#
+#Performs simple loging
+#
+log()
+{
+    if [ -n "$2" ]
+    then
+        if [ "$2" -gt "$loglevel" ]
+	then
+	#call appropriata message with mark.
+	    echo "`date +%d.%m.%Y/%H:%M:%S` ${level[$2]}: $1 " >> $sb_path_log
+	fi
+    else
+	echo "`date +%d.%m.%Y/%H:%M:%S` $1 " >> $sb_path_log
+    fi
+}
+
+
+debug()
+{
+   if [ "$loglevel" -eq 0 ]
+   then
+        echo "`date +%d.%m.%Y/%H:%M:%S` DEBUG: $1 " >> $sb_path_log
+   fi
+}
+
+info()
+{
+   if [ "$loglevel" -le 1]
+   then
+    echo "`date +%d.%m.%Y/%H:%M:%S` INFO: $1 " >> $sb_path_log
+   fi
+}
+
+warn()
+{
+   if [ "$loglevel" -le 2]
+   then
+       echo "`date +%d.%m.%Y/%H:%M:%S` WARN: $1 " >> $sb_path_log
+    fi
+}
+
+error()
+{
+   if [ "$loglevel" -le 3]
+   then
+     echo "`date +%d.%m.%Y/%H:%M:%S` ERROR: $1 " >> $sb_path_log
+    fi
+}
+
+fatal()
+{
+   if [ "$loglevel" -le 4]
+   then
+	 echo "`date +%d.%m.%Y/%H:%M:%S` FATAL: $1 " >> $sb_path_log
+   fi
+}

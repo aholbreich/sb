@@ -1,0 +1,148 @@
+#!/bin/sh
+#=== Shuron's Bakup Script (sb) ====
+#This script is providet with NO WARRANTY. USAGE ON OWN RISK
+#
+#
+#set -x
+
+cd "`dirname $0`"
+
+INC_COMMON=common
+B_DIR=/level.
+
+if [ ! -f "$INC_COMMON" ]
+then
+  echo "File $INC_COMMON not found. (Bad cokfiguration)"
+  exit 1
+fi
+
+. "$INC_COMMON" 				# Including commons
+
+#=== Input parameter validation (JOB-Name)
+if [ -n "$1" ]
+then
+    JOB="$1"
+    if [ -f "$sb_path_job$JOB" ]
+    then
+	. $sb_path_job$JOB			# ==== read job vars
+    else
+	echo "Job file not found"
+	log  " Job file $sb_jobs_path$JOB not found"
+	exit 65	
+    fi
+else
+  echo "Error: usage $0 <jobfilename>"
+  exit 65
+fi
+
+log "==========================="
+log "Starting Backup JOB: $1"
+
+#=== Mountig first if needet ===
+if $need_mount 
+then
+    ./imount $mnt_device $mnt_dir
+    if [ $? -ne 0 ]
+    then
+	log "BACKUP ABBORTED: Mount returned $? "
+	exit $?
+    fi
+fi    
+
+#=== Create directory if not there
+if ! [ -d "$sb_path_main$JOB" ] 
+then
+    mkdir -p "$sb_path_main$JOB"
+    log "Creating Job direktory $sb_path_main$JOB"
+fi
+
+
+#=== Create directory if not there === and rotate if needed
+if ! [ -d "$sb_path_main$JOB$B_DIR"0 ] 
+then
+    # Meaning first time Backup. no rotation needed
+    mkdir -p "$sb_path_main$JOB$B_DIR"0
+    log "FULL BACKUP assumed"
+    log "Creating level0 directory: $sb_path_main$JOB$B_DIR"0
+else
+    # backup dir exist, so it must be rotated first.
+    log "INCREMENTAL BACKUP assumed"
+    log "Start rotation"
+    if [ -d "$sb_path_main$JOB$B_DIR$JOB_HISTORYLEVEL" ]
+    then 
+	rm -rf "$sb_path_main$JOB$B_DIR$JOB_HISTORYLEVEL" # Delete directory which exedes the level 
+	log "level $JOB_HISTORYLEVEL directory was removed"
+    fi 
+    
+    #rotate others
+    i=$(($JOB_HISTORYLEVEL - 1))
+    min=0
+    while [ "$i" -gt "$min" ]
+    do
+	#echo "DEBUG: loop: $sb_path_main$JOB_DEST$B_DIR$i"
+	if [ -d "$sb_path_main$JOB$B_DIR$i" ]
+	then
+	    new=$[ $i + 1 ]
+	    #preserve Date
+	    #echo "DEBUG: rotate $sb_path_main$JOB_DEST$B_DIR$i to $sb_path_main$JOB_DEST$B_DIR$new "
+	    touch "$sb_path_main$JOB"/.timestamp -r "$sb_path_main$JOB$B_DIR$i"
+	    mv "$sb_path_main$JOB$B_DIR$i" "$sb_path_main$JOB$B_DIR$new"
+	    # restore date
+	    touch "$sb_path_main$JOB$B_DIR$new" -r "$sb_path_main$JOB"/.timestamp	
+	fi
+	i=$(($i-1))
+    done
+    #Hardlink Copy
+    cp -al "$sb_path_main$JOB$B_DIR"0 "$sb_path_main$JOB$B_DIR"1
+    log "Rotation: $JOB directory rotation done "
+fi
+
+#===== Make shure that updated files become new (independet) copy ====
+
+if $sb_track_upd
+then
+    wasmod=0
+    lng=${#JOB_SOURCE}
+    reftime=$(( (`date +%s`)/60 - (`stat -c %Y "$sb_path_main$JOB$B_DIR"1`)/60 + 1)) #1 is for security
+    log "Last update was made $reftime minutes ago"
+    find $JOB_SOURCE -cmin -$reftime | while read file
+    do
+	if [ -f "$file" ]
+	then 
+	    cute=`echo "$file" | cut -c"$lng"-"${#file}"`
+	    rm -f "$sb_path_main$JOB$B_DIR"0"$cute"
+	#    echo "DEBUG: $sb_path_main$JOB$B_DIR"0"$cute"
+	    wasmod=$(($wasmod+1))
+	fi
+    done
+    #log " $wasmod files where modified (inclusive new inserted)  since last backup" # FIXME	
+fi
+
+#===== Start backup ======
+log "Starting synchronization (rsync) for Job: $JOB"
+#echo " Jobexludefile: $sb_path_job$JOB_EXCLUDEFILE "
+rsync -a --numeric-ids --delete --delete-excluded --exclude-from="$sb_path_job$JOB_EXCLUDEFILE" \
+ "$JOB_SOURCE" "$sb_path_main$JOB$B_DIR"0
+
+if ! [ $? = 24 -o $? = 0 ] ; then
+    log "FATAL EROROR: rsync finished with errors! It returnes: $?"
+    exit 1
+fi
+# store backup date, trought touch
+touch "$sb_path_main$JOB$B_DIR"0
+log "BACKUP Syncronization SUCESSFULL"
+sync
+
+if $need_unmount
+then
+    log "Unmountig device: $mnt_device"
+    umount $mnt_device
+    if [ $? -ne 0 ]
+    then
+	log " FAILURE: umount returned $? "
+    else
+	log " $mnt_device was umouted "
+    fi
+fi
+log "backup-job: $JOB  finisched"
+    
